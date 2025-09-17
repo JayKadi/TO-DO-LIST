@@ -44,3 +44,21 @@ h1{
   text-decoration: line-through;
   color: gray;
 }
+footer {
+  position: fixed;
+  bottom: 10px;
+  width: 100%;
+  text-align: center;
+}/*the clear all button is fixed at the bottom*/
+#clearAllBtn {
+  padding: 0.5rem 1rem;
+  background-color: crimson;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+#clearAllBtn:hover {
+  background-color: darkred;
+}
