@@ -62,3 +62,60 @@ footer {
 #clearAllBtn:hover {
   background-color: darkred;
 }
+.board {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.column {
+  flex: 1;
+  background: #f9f9f9;
+  padding: 10px;
+  border-radius: 8px;
+  min-height: 400px;
+}
+
+.column h2 {
+  text-align: center;
+}
+/*Changing color themes of the page*/
+:root {
+  --bg-color: #ffffff;
+  --text-color: #222222;
+  --column-bg: #f4f4f4;
+}
+
+body.dark {
+  --bg-color: darkblue;
+  --text-color: #eeeeee;
+  --column-bg: #1e1e1e;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.column {
+  background-color: var(--column-bg);
+  padding: 1rem;
+  border-radius: 8px;
+  transition: background 0.3s ease;
+}
+
+#themeToggle {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+/* Highlighted drop zone */
+.highlight {
+  background-color: rgba(0, 150, 255, 0.1); /* light blue glow */
+  border: 2px dashed #0096ff;
+  border-radius: 6px;
+}
+
+
