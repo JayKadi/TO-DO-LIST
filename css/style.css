@@ -87,9 +87,9 @@ footer {
 }
 
 body.dark {
-  --bg-color: darkblue;
-  --text-color: #eeeeee;
-  --column-bg: #1e1e1e;
+  --bg-color: rgb(88, 0, 139);
+  --text-color:black;
+  --column-bg:darkblue;
 }
 
 body {
@@ -117,5 +117,84 @@ body {
   border: 2px dashed #0096ff;
   border-radius: 6px;
 }
+/*priority colors*/
+.priority-high {
+  border-left: 5px solid red;
+  background: #ffe5e5;
+}
 
+.priority-medium {
+  border-left: 5px solid orange;
+  background: #fff5e6;
+}
 
+.priority-low {
+  border-left: 5px solid green;
+  background: #e6ffe6;
+}
+/*Delete confirmation popup theme aware*/
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: none; /* hidden by default */
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.popup-content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 300px;
+  width: 90%;
+}
+
+.popup-buttons {
+  margin-top: 15px;
+  display: flex;
+  justify-content: space-around;
+}
+
+.popup-buttons button {
+  padding: 6px 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.popup-buttons button#confirmDelete {
+  background-color: #e74c3c;
+  color: #fff;
+}
+
+.popup-buttons button#cancelDelete {
+  background-color: #bdc3c7;
+  color: #000;
+}
+/* Light mode (default) */
+.popup-content {
+  background: #fff;
+  color: #000;
+}
+
+/* Dark mode */
+body.dark .popup-content {
+  background: #2c3e50;
+  color: #ecf0f1;
+}
+
+body.dark .popup-buttons button#cancelDelete {
+  background-color: #7f8c8d;
+  color: #fff;
+}
+
+body.dark .popup-buttons button#confirmDelete {
+  background-color: #e74c3c;
+  color: #fff;
+}

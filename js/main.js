@@ -21,12 +21,36 @@ window.addEventListener("load", () => {
 
    
 // ---------------- ADD TASK ----------------
-function addTask(taskTextParam, status = "todo") {
+function addTask(taskTextParam, status = "todo", priorityParam) {
   const taskText = taskTextParam || taskInput.value.trim();
   if (taskText === "") return;
-        const li = document.createElement("li");
 
-li.setAttribute("draggable", "true");//makes the task draggable
+  // Get priority either from passed param or dropdown input
+  const priority = priorityParam || document.getElementById("priorityInput").value;
+
+  const li = document.createElement("li");
+  li.setAttribute("draggable", "true");
+  li.classList.add("task-item"); // <-- add this
+
+  // apply priority class
+  li.classList.add(`priority-${priority}`);
+
+// Inside addTask
+const category = document.getElementById("categoryInput")?.value || "work";
+li.dataset.category = category;//enables filtering by work,personal,shopping
+
+  // span for text
+  const span = document.createElement("span");
+  span.textContent = taskText;
+
+  // toggle completed on click
+  span.addEventListener("click", () => {
+    span.classList.toggle("completed");
+    
+    saveTasks();
+    updateCounter();
+  });
+//makes the task draggable
 
 // drag start
 li.addEventListener("dragstart", e => {
@@ -40,11 +64,6 @@ li.addEventListener("dragend", () => {
   saveTasks();
   updateCounter();
 });
-
-
-        // span for text
-        const span = document.createElement("span");
-        span.textContent = taskText;
 
         // toggle completed when clicked
        span.addEventListener("click", () => {
@@ -84,11 +103,35 @@ li.addEventListener("dragend", () => {
         const deleteBtn = document.createElement("button");
         deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
         deleteBtn.classList.add("delete-btn");
+        //popup confirmation to delete a task
         deleteBtn.addEventListener("click", () => {
-          li.remove();
-        saveTasks();
-        updateCounter();//updates task count when you delete a task
-        });
+  const deletePopup = document.getElementById("deletePopup");
+  const confirmBtn = document.getElementById("confirmDelete");
+  const cancelBtn = document.getElementById("cancelDelete");
+
+  deletePopup.style.display = "flex"; // show popup
+
+  const handleConfirm = () => {
+    li.remove();
+    saveTasks();
+    updateCounter();
+    deletePopup.style.display = "none";
+
+    // clean up event listeners
+    confirmBtn.removeEventListener("click", handleConfirm);
+    cancelBtn.removeEventListener("click", handleCancel);
+  };
+
+  const handleCancel = () => {
+    deletePopup.style.display = "none";
+    confirmBtn.removeEventListener("click", handleConfirm);
+    cancelBtn.removeEventListener("click", handleCancel);
+  };
+
+  confirmBtn.addEventListener("click", handleConfirm);
+  cancelBtn.addEventListener("click", handleCancel);
+});
+
 //append everything in order
 
   // move dropdown
@@ -107,11 +150,14 @@ li.addEventListener("dragend", () => {
     saveTasks();
     updateCounter();
   });
+  //end of popup confirmation to delete a task
          // build li
   li.appendChild(span);
-  li.appendChild(editBtn);
-  li.appendChild(deleteBtn);
-  li.appendChild(moveSelect);
+  li.appendChild(editBtn);//edit a button
+  li.appendChild(deleteBtn);//delete a button
+  li.appendChild(moveSelect);//move tasks
+
+
 
    // append to correct column
   moveTask(li, status);
@@ -125,31 +171,65 @@ li.addEventListener("dragend", () => {
     saveTasks();
      updateCounter();
   }
+  // ---------------- CELEBRATION ----------------
+function celebrateCompletion() {
+  // 🎉 Confetti
+  confetti({
+    particleCount: 100,
+    spread: 70,
+    origin: { x: 0.5, y: 0.5 }
+  });
+
+  // 🔊 Sound
+  const sound = document.getElementById("successSound");
+  if (sound) {
+    sound.currentTime = 0;
+   sound.play()
+      .then(() => console.log("🔊 sound played"))
+      .catch(err => console.warn("⚠️ sound blocked:", err));
+  }
+}
 
       // ---------------- MOVE TASK ----------------
 function moveTask(taskEl, status) {
   if (status === "todo") taskList.appendChild(taskEl); // ✅ use taskList (your todo list)
   if (status === "progress") progressList.appendChild(taskEl);
-  if (status === "completed") completedList.appendChild(taskEl);
+  if (status === "completed") {
+    completedList.appendChild(taskEl);
+
+    // Trigger celebration 🎉
+    celebrateCompletion();
+  }
 }
        // ---------------- SAVE TASKS ----------------
 function saveTasks() {
   const tasks = [];
 
   document.querySelectorAll(".board li").forEach(li => {
-    const text = li.querySelector("span").textContent;
-    const column = li.querySelector("select").value;
-    tasks.push({ text, status: column });
+    const text = li.querySelector("span")?.textContent || "";
+
+    // try to find a move-select, fallback to "todo"
+    const sel = li.querySelector("select.move-select");
+    const column = sel ? sel.value : "todo";
+
+    // extract priority from class
+    let priority = "low";
+    if (li.classList.contains("priority-high")) priority = "high";
+    else if (li.classList.contains("priority-medium")) priority = "medium";
+
+    tasks.push({ text, status: column, priority });
   });
 
   localStorage.setItem("tasks", JSON.stringify(tasks));
+  updateCounter();
 }
+
  // Load tasks from localStorage
   
 // ---------------- LOAD TASKS ----------------
 function loadTasks() {
   const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
-  tasks.forEach(task => addTask(task.text, task.status));
+  tasks.forEach(task => addTask(task.text, task.status, task.priority));
   updateCounter();
 }
 
@@ -195,49 +275,107 @@ function updateCounter() {
     `${completedTasks} of ${totalTasks} tasks completed`;
 }
 // enable drag & drop for all columns
-[todoList, progressList, completedList].forEach(column => {
-  // allow dropping
-  column.addEventListener("dragover", e => {
-    e.preventDefault();
-    column.classList.add("highlight"); // add highlight effect
+// drag start / end (delegated, works for dynamically added <li>)
+document.addEventListener("dragstart", (e) => {
+  const li = e.target.closest("li");
+  if (!li) return;
+  // required for Firefox
+  try { e.dataTransfer.setData("text/plain", "moving"); } catch (err) {}
+  e.dataTransfer.effectAllowed = "move";
+  li.classList.add("dragging");
+});
+
+document.addEventListener("dragend", (e) => {
+  const li = e.target.closest("li");
+  if (!li) return;
+  li.classList.remove("dragging");
+});
+
+// clean column-based drop + highlight
+const columns = document.querySelectorAll(".column"); // selects the <div class="column ...">
+
+columns.forEach(column => {
+  const list = column.querySelector("ul"); // the actual <ul> where <li> live
+
+  column.addEventListener("dragover", (e) => {
+    e.preventDefault(); // allow drop
+    column.classList.add("highlight");
   });
 
-  // remove highlight when leaving column
-  column.addEventListener("dragleave", () => {
+  column.addEventListener("dragenter", (e) => {
+    e.preventDefault();
+    column.classList.add("highlight");
+  });
+
+  column.addEventListener("dragleave", (e) => {
+    // remove highlight when leaving the column area
+    // this avoids flicker when moving between child elements
+    const rect = column.getBoundingClientRect();
+    const x = e.clientX, y = e.clientY;
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      column.classList.remove("highlight");
+    }
+  });
+
+  column.addEventListener("drop", (e) => {
+    e.preventDefault();
     column.classList.remove("highlight");
-  });
-
-  // handle drop
-  column.addEventListener("drop", e => {
-    e.preventDefault();
-    column.classList.remove("highlight"); // remove highlight after drop
 
     const dragging = document.querySelector(".dragging");
     if (!dragging) return;
 
-    // append into the new column
-    column.appendChild(dragging);
+    // append to this column's ul
+    list.appendChild(dragging);
 
-    // update dropdown value to match new column
-    const select = dragging.querySelector("select");
-    if (column.id === "todoList") select.value = "todo";
-    if (column.id === "progressList") select.value = "progress";
-    if (column.id === "completedList") select.value = "completed";
+    // keep dropdown select in-sync (if your li contains <select>)
+    const sel = dragging.querySelector("select");
+    if (sel) {
+      if (column.classList.contains("todo")) sel.value = "todo";
+      else if (column.classList.contains("in-progress")) sel.value = "progress";
+      else if (column.classList.contains("completed")) sel.value = "completed";
+    }
+     // 👇 Call moveTask so confetti + sound trigger when moved to completed
+  if (column.classList.contains("todo")) moveTask(dragging, "todo");
+  else if (column.classList.contains("in-progress")) moveTask(dragging, "progress");
+  else if (column.classList.contains("completed")) moveTask(dragging, "completed");
 
     saveTasks();
     updateCounter();
   });
 });
-
-// add dragging class only during drag
-document.addEventListener("dragstart", e => {
-  if (e.target.tagName === "LI") {
-    e.target.classList.add("dragging");
-  }
+//makes top-right drop down switchable between dashboards
+document.getElementById("categoryFilter").addEventListener("change", e => {
+  const selected = e.target.value;
+  document.querySelectorAll(".board li").forEach(li => {
+    if (selected === "all" || li.dataset.category === selected) {
+      li.style.display = "flex";
+    } else {
+      li.style.display = "none";
+    }
+  });
 });
+//Now for the filter dropdown at the top-right
+const categoryFilter = document.getElementById("categoryFilter");
 
-document.addEventListener("dragend", e => {
-  if (e.target.tagName === "LI") {
-    e.target.classList.remove("dragging");
-  }
+categoryFilter.addEventListener("change", () => {
+  const selectedCategory = categoryFilter.value;
+
+  document.querySelectorAll(".task-item").forEach(task => {
+    if (selectedCategory === "all" || task.dataset.category === selectedCategory) {
+      task.style.display = "flex"; // show
+    } else {
+      task.style.display = "none"; // hide
+    }
+  });
 });
+//unlocks” audio after your first click anywhere.
+document.addEventListener("click", () => {
+  const sound = document.getElementById("successSound");
+  if (sound) {
+    sound.play().then(() => {
+      sound.pause();
+      sound.currentTime = 0; // reset
+    }).catch(() => {});
+  }
+}, { once: true });
+
