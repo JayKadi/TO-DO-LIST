@@ -263,6 +263,49 @@ themeToggle.addEventListener("click", () => {
     localStorage.setItem("theme", "light");
   }
 });
+// ---------- SEARCH (robust) ----------
+(function () {
+  // try a few likely ids so we don't break if it was named differently
+  const searchInput = document.getElementById("searchInput") 
+                    || document.getElementById("taskSearch")
+                    || null;
+
+  if (!searchInput) {
+    console.warn("Search input (#searchInput) not found — add <input id=\"searchInput\">");
+    return;
+  }
+
+  // filter function
+  function runFilter() {
+    const q = searchInput.value.toLowerCase().trim();
+
+    // select all tasks in the board (works even if you didn't add a custom class)
+    const nodes = document.querySelectorAll(".board li");
+
+    nodes.forEach(li => {
+      // gather searchable bits: main text, category (data attr), priority (from class)
+      const text = (li.querySelector("span")?.textContent || "").toLowerCase();
+      const category = (li.dataset.category || "").toLowerCase();
+      // priority stored as class like "priority-high"
+      const classes = Array.from(li.classList);
+      const priority = (classes.find(c => c.startsWith("priority-")) || "").replace("priority-", "");
+
+      // match if query is empty OR present in text/category/priority
+      const matches = q === "" || text.includes(q) || category.includes(q) || priority.includes(q);
+
+      // show/hide (use empty string to let CSS handle default display)
+      li.style.display = matches ? "" : "none";
+    });
+  }
+
+  // attach handler
+  searchInput.addEventListener("input", runFilter);
+
+  // run filter after load in case tasks already present
+  window.addEventListener("load", runFilter);
+})();
+//END OF SEARCH----------
+
 //counter
 function updateCounter() {
   const totalTasks = document.querySelectorAll(
@@ -316,32 +359,33 @@ columns.forEach(column => {
       column.classList.remove("highlight");
     }
   });
+//DROP HANDLER
+ column.addEventListener("drop", (e) => {
+  e.preventDefault();
+  column.classList.remove("highlight");
 
-  column.addEventListener("drop", (e) => {
-    e.preventDefault();
-    column.classList.remove("highlight");
+  const dragging = document.querySelector(".dragging");
+  if (!dragging) return;
 
-    const dragging = document.querySelector(".dragging");
-    if (!dragging) return;
+  list.appendChild(dragging);
 
-    // append to this column's ul
-    list.appendChild(dragging);
+  // bounce
+  dragging.classList.add("bounce");
+  setTimeout(() => dragging.classList.remove("bounce"), 300);
 
-    // keep dropdown select in-sync (if your li contains <select>)
-    const sel = dragging.querySelector("select");
-    if (sel) {
-      if (column.classList.contains("todo")) sel.value = "todo";
-      else if (column.classList.contains("in-progress")) sel.value = "progress";
-      else if (column.classList.contains("completed")) sel.value = "completed";
+  const sel = dragging.querySelector("select");
+  if (sel) {
+    if (column.classList.contains("todo")) sel.value = "todo";
+    else if (column.classList.contains("in-progress")) sel.value = "progress";
+    else if (column.classList.contains("completed")) {
+      sel.value = "completed";
+      celebrateCompletion(); // 🎉 sound + confetti
     }
-     // 👇 Call moveTask so confetti + sound trigger when moved to completed
-  if (column.classList.contains("todo")) moveTask(dragging, "todo");
-  else if (column.classList.contains("in-progress")) moveTask(dragging, "progress");
-  else if (column.classList.contains("completed")) moveTask(dragging, "completed");
+  }
 
-    saveTasks();
-    updateCounter();
-  });
+  saveTasks();
+  updateCounter();
+}); //END OF DROP HANDLER
 });
 //makes top-right drop down switchable between dashboards
 document.getElementById("categoryFilter").addEventListener("change", e => {
