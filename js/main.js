@@ -202,6 +202,7 @@ function moveTask(taskEl, status) {
   }
 }
        // ---------------- SAVE TASKS ----------------
+// ---------------- SAVE TASKS ----------------
 function saveTasks() {
   const tasks = [];
 
@@ -217,12 +218,21 @@ function saveTasks() {
     if (li.classList.contains("priority-high")) priority = "high";
     else if (li.classList.contains("priority-medium")) priority = "medium";
 
-    tasks.push({ text, status: column, priority });
+    // ✅ get category (default to "work" if missing)
+    const category = li.dataset.category || "work";
+    
+    tasks.push({
+      text,
+      status: column,
+      priority,
+      category,
+    });
   });
 
   localStorage.setItem("tasks", JSON.stringify(tasks));
   updateCounter();
 }
+
 
  // Load tasks from localStorage
   
@@ -387,31 +397,13 @@ columns.forEach(column => {
   updateCounter();
 }); //END OF DROP HANDLER
 });
-//makes top-right drop down switchable between dashboards
-document.getElementById("categoryFilter").addEventListener("change", e => {
-  const selected = e.target.value;
-  document.querySelectorAll(".board li").forEach(li => {
-    if (selected === "all" || li.dataset.category === selected) {
-      li.style.display = "flex";
-    } else {
-      li.style.display = "none";
-    }
-  });
-});
-//Now for the filter dropdown at the top-right
-const categoryFilter = document.getElementById("categoryFilter");
+// Dashboard navigation dropdown (top-right)
+const dashboardNav = document.getElementById("dashboardNav");
 
-categoryFilter.addEventListener("change", () => {
-  const selectedCategory = categoryFilter.value;
-
-  document.querySelectorAll(".task-item").forEach(task => {
-    if (selectedCategory === "all" || task.dataset.category === selectedCategory) {
-      task.style.display = "flex"; // show
-    } else {
-      task.style.display = "none"; // hide
-    }
-  });
+dashboardNav.addEventListener("change", () => {
+  window.location.href = dashboardNav.value; // Redirect to chosen dashboard
 });
+
 //unlocks” audio after your first click anywhere.
 document.addEventListener("click", () => {
   const sound = document.getElementById("successSound");

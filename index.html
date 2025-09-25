@@ -52,13 +52,17 @@
     <ul id="completedList"></ul>
   </div>
 </div>
-<select id="categoryFilter" style="position:absolute; top:10px; right:10px;">
-  <option value="all">All</option>
-  <option value="work">Work</option>
-  <option value="personal">Personal</option>
-  <option value="shopping">Shopping</option>
-</select>
-   
+<!-- place this in your header/top-right area -->
+<nav class="navbar">
+  <select id="dashboardNav" onchange="location = this.value;">
+    <option value="index.html">🏠 Home</option>
+    <option value="work.html">💼 Work</option>
+    <option value="personal.html">👤 Personal</option>
+    <option value="shopping.html">🛒 Shopping</option>
+  </select>
+</nav>
+
+
   <p id="taskCounter">0 of 0 tasks completed</p>
 <footer>
   <button id="clearAllBtn">Clear All</button>

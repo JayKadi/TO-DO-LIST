@@ -242,3 +242,25 @@ body.dark .popup-buttons button#confirmDelete {
 .bounce {
   animation: bounce 0.3s ease;
 }
+/*Nav bar*/
+.navbar {
+  position: absolute; /* stick it relative to the page */
+  top: 10px;          /* distance from the top */
+  right: 10px;        /* distance from the right */
+}
+
+.navbar select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+body.dark .navbar select {
+  background: #222;
+  color: #fff;
+  border-color: #444;
+}
+/*End of Navbar*/
