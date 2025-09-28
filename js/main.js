@@ -1,10 +1,9 @@
 const addBtn = document.getElementById('addBtn');
-    const taskInput = document.getElementById('taskInput');
-    const taskList = document.getElementById('todoList');
-    const progressList = document.getElementById("progressList");
+const taskInput = document.getElementById('taskInput');
+const taskList = document.getElementById('todoList');
+const progressList = document.getElementById("progressList");
 const completedList = document.getElementById("completedList");
 const themeToggle = document.getElementById("themeToggle");
-
 
 // Load saved theme on startup
 window.addEventListener("load", () => {
@@ -13,15 +12,38 @@ window.addEventListener("load", () => {
     themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
   }
 });
-      // Load saved tasks when page loads and also auto focuses curser to input field
-  window.onload = () => {
+
+// Load saved tasks when page loads and also auto focuses cursor to input field
+window.onload = () => {
   loadTasks();
   taskInput.focus(); // 👈 focus the input when page is ready
 };
 
-   
+// ---------------- UPDATE TASK STATUS IN STORAGE (same as category dashboards) ----------------
+function updateTaskStatus(taskText, taskCategory, newStatus) {
+  const allTasks = JSON.parse(localStorage.getItem("tasks")) || [];
+  
+  const taskIndex = allTasks.findIndex(t => 
+    t.text === taskText && t.category === taskCategory
+  );
+
+  if (taskIndex !== -1) {
+    allTasks[taskIndex].status = newStatus;
+    localStorage.setItem("tasks", JSON.stringify(allTasks));
+  }
+}
+
+// ---------------- REMOVE TASK FROM STORAGE ----------------
+function removeTaskFromStorage(taskText, taskCategory) {
+  const allTasks = JSON.parse(localStorage.getItem("tasks")) || [];
+  const updatedTasks = allTasks.filter(t => 
+    !(t.text === taskText && t.category === taskCategory)
+  );
+  localStorage.setItem("tasks", JSON.stringify(updatedTasks));
+}
+
 // ---------------- ADD TASK ----------------
-function addTask(taskTextParam, status = "todo", priorityParam) {
+function addTask(taskTextParam, status = "todo", priorityParam, categoryParam) {
   const taskText = taskTextParam || taskInput.value.trim();
   if (taskText === "") return;
 
@@ -30,14 +52,14 @@ function addTask(taskTextParam, status = "todo", priorityParam) {
 
   const li = document.createElement("li");
   li.setAttribute("draggable", "true");
-  li.classList.add("task-item"); // <-- add this
+  li.classList.add("task-item");
 
   // apply priority class
   li.classList.add(`priority-${priority}`);
 
-// Inside addTask
-const category = document.getElementById("categoryInput")?.value || "work";
-li.dataset.category = category;//enables filtering by work,personal,shopping
+  // Inside addTask
+  const category = categoryParam || document.getElementById("categoryInput")?.value || "work";
+  li.dataset.category = category; //enables filtering by work,personal,shopping
 
   // span for text
   const span = document.createElement("span");
@@ -46,33 +68,32 @@ li.dataset.category = category;//enables filtering by work,personal,shopping
   // toggle completed on click
   span.addEventListener("click", () => {
     span.classList.toggle("completed");
-    
     saveTasks();
     updateCounter();
   });
-//makes the task draggable
 
-// drag start
-li.addEventListener("dragstart", e => {
-  e.dataTransfer.setData("text/plain", null); // needed for Firefox
-  li.classList.add("dragging");
-});
+  // drag start
+  li.addEventListener("dragstart", e => {
+    e.dataTransfer.setData("text/plain", null); // needed for Firefox
+    li.classList.add("dragging");
+  });
 
-// drag end
-li.addEventListener("dragend", () => {
-  li.classList.remove("dragging");
-  saveTasks();
-  updateCounter();
-});
+  // drag end - Updated to use direct localStorage update
+  li.addEventListener("dragend", () => {
+    li.classList.remove("dragging");
+    
+    // Determine new status based on which column the task is in
+    let newStatus = "todo";
+    if (progressList.contains(li)) newStatus = "progress";
+    else if (completedList.contains(li)) newStatus = "completed";
+    
+    // Update localStorage directly
+    updateTaskStatus(span.textContent, category, newStatus);
+    
+    updateCounter();
+  });
 
-        // toggle completed when clicked
-       span.addEventListener("click", () => {
-  span.classList.toggle("completed");
-  saveTasks();
-  updateCounter();
-});
-         // edit button comes before delete 
-   // edit button
+  // edit button
   const editBtn = document.createElement("button");
   editBtn.innerHTML = '<i class="fas fa-pen"></i>';
   editBtn.classList.add("edit-btn");
@@ -81,61 +102,70 @@ li.addEventListener("dragend", () => {
     const input = document.createElement("input");
     input.type = "text";
     input.value = currentText;
-    // create input field
     
     li.replaceChild(input, span);
     editBtn.innerHTML = '<i class="fas fa-save"></i>';
 
-    // replace span with input
-    li.replaceChild(input, span);
-    editBtn.textContent = "Save";
-
     // when save is clicked
-    editBtn.addEventListener("click", () => {
-      span.textContent = input.value.trim() || currentText;
+    const saveHandler = () => {
+      const newText = input.value.trim() || currentText;
+      span.textContent = newText;
       li.replaceChild(span, input);
-      editBtn.textContent = "Edit";
-      saveTasks();
-    }, { once: true });
+      editBtn.innerHTML = '<i class="fas fa-pen"></i>';
+      
+      // Update task text in localStorage
+      const allTasks = JSON.parse(localStorage.getItem("tasks")) || [];
+      const taskIndex = allTasks.findIndex(t => 
+        t.text === currentText && t.category === category
+      );
+      if (taskIndex !== -1) {
+        allTasks[taskIndex].text = newText;
+        localStorage.setItem("tasks", JSON.stringify(allTasks));
+      }
+      
+      editBtn.removeEventListener("click", saveHandler);
+    };
+    
+    editBtn.addEventListener("click", saveHandler);
   });
 
-        // delete button
-        const deleteBtn = document.createElement("button");
-        deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
-        deleteBtn.classList.add("delete-btn");
-        //popup confirmation to delete a task
-        deleteBtn.addEventListener("click", () => {
-  const deletePopup = document.getElementById("deletePopup");
-  const confirmBtn = document.getElementById("confirmDelete");
-  const cancelBtn = document.getElementById("cancelDelete");
+  // delete button
+  const deleteBtn = document.createElement("button");
+  deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+  deleteBtn.classList.add("delete-btn");
+  
+  deleteBtn.addEventListener("click", () => {
+    const deletePopup = document.getElementById("deletePopup");
+    const confirmBtn = document.getElementById("confirmDelete");
+    const cancelBtn = document.getElementById("cancelDelete");
 
-  deletePopup.style.display = "flex"; // show popup
+    deletePopup.style.display = "flex"; // show popup
 
-  const handleConfirm = () => {
-    li.remove();
-    saveTasks();
-    updateCounter();
-    deletePopup.style.display = "none";
+    const handleConfirm = () => {
+      // Remove from localStorage directly
+      removeTaskFromStorage(span.textContent, category);
+      li.remove();
+      updateCounter();
+      deletePopup.style.display = "none";
 
-    // clean up event listeners
-    confirmBtn.removeEventListener("click", handleConfirm);
-    cancelBtn.removeEventListener("click", handleCancel);
-  };
+      // clean up event listeners
+      confirmBtn.removeEventListener("click", handleConfirm);
+      cancelBtn.removeEventListener("click", handleCancel);
+    };
 
-  const handleCancel = () => {
-    deletePopup.style.display = "none";
-    confirmBtn.removeEventListener("click", handleConfirm);
-    cancelBtn.removeEventListener("click", handleCancel);
-  };
+    const handleCancel = () => {
+      deletePopup.style.display = "none";
+      confirmBtn.removeEventListener("click", handleConfirm);
+      cancelBtn.removeEventListener("click", handleCancel);
+    };
 
-  confirmBtn.addEventListener("click", handleConfirm);
-  cancelBtn.addEventListener("click", handleCancel);
-});
-
-//append everything in order
+    confirmBtn.addEventListener("click", handleConfirm);
+    cancelBtn.addEventListener("click", handleCancel);
+  });
 
   // move dropdown
   const moveSelect = document.createElement("select");
+  moveSelect.classList.add("move-select"); // Add the class for consistency
   ["todo", "progress", "completed"].forEach(col => {
     const option = document.createElement("option");
     option.value = col;
@@ -145,33 +175,34 @@ li.addEventListener("dragend", () => {
     if (col === status) option.selected = true;
     moveSelect.appendChild(option);
   });
+  
   moveSelect.addEventListener("change", () => {
     moveTask(li, moveSelect.value);
-    saveTasks();
+    // Update localStorage directly
+    updateTaskStatus(span.textContent, category, moveSelect.value);
     updateCounter();
   });
-  //end of popup confirmation to delete a task
-         // build li
+
+  // build li
   li.appendChild(span);
-  li.appendChild(editBtn);//edit a button
-  li.appendChild(deleteBtn);//delete a button
-  li.appendChild(moveSelect);//move tasks
+  li.appendChild(editBtn);
+  li.appendChild(deleteBtn);
+  li.appendChild(moveSelect);
 
-
-
-   // append to correct column
+  // append to correct column
   moveTask(li, status);
 
-    if (!taskTextParam) {
-  taskInput.value = "";
-  setTimeout(() => taskInput.focus(), 0);
-}//moves cursor back to input fiels setting the timeout puts browser in delay browser handles button click and moves back to cursor
-    
-    // save after adding
-    saveTasks();
-     updateCounter();
+  if (!taskTextParam) {
+    taskInput.value = "";
+    setTimeout(() => taskInput.focus(), 0);
   }
-  // ---------------- CELEBRATION ----------------
+
+  // Always save tasks to localStorage
+  saveTasks();
+  updateCounter();
+}
+
+// ---------------- CELEBRATION ----------------
 function celebrateCompletion() {
   // 🎉 Confetti
   confetti({
@@ -184,46 +215,51 @@ function celebrateCompletion() {
   const sound = document.getElementById("successSound");
   if (sound) {
     sound.currentTime = 0;
-   sound.play()
+    sound.play()
       .then(() => console.log("🔊 sound played"))
       .catch(err => console.warn("⚠️ sound blocked:", err));
   }
 }
 
-      // ---------------- MOVE TASK ----------------
+// ---------------- MOVE TASK ----------------
 function moveTask(taskEl, status) {
-  if (status === "todo") taskList.appendChild(taskEl); // ✅ use taskList (your todo list)
+  if (status === "todo") taskList.appendChild(taskEl);
   if (status === "progress") progressList.appendChild(taskEl);
   if (status === "completed") {
     completedList.appendChild(taskEl);
-
     // Trigger celebration 🎉
     celebrateCompletion();
   }
+  
+  // Update the dropdown to match
+  const select = taskEl.querySelector("select");
+  if (select) select.value = status;
 }
-       // ---------------- SAVE TASKS ----------------
-// ---------------- SAVE TASKS ----------------
+
+// ---------------- SAVE TASKS (rebuilt from DOM) ----------------
 function saveTasks() {
   const tasks = [];
 
   document.querySelectorAll(".board li").forEach(li => {
     const text = li.querySelector("span")?.textContent || "";
 
-    // try to find a move-select, fallback to "todo"
-    const sel = li.querySelector("select.move-select");
-    const column = sel ? sel.value : "todo";
+    // Determine status by which column the task is in
+    let status = "todo";
+    if (li.parentElement && li.parentElement.id === "progressList") status = "progress";
+    else if (li.parentElement && li.parentElement.id === "completedList") status = "completed";
+    else if (li.parentElement && li.parentElement.id === "todoList") status = "todo";
 
     // extract priority from class
     let priority = "low";
     if (li.classList.contains("priority-high")) priority = "high";
     else if (li.classList.contains("priority-medium")) priority = "medium";
 
-    // ✅ get category (default to "work" if missing)
+    // get category (default to "work" if missing)
     const category = li.dataset.category || "work";
     
     tasks.push({
       text,
-      status: column,
+      status,
       priority,
       category,
     });
@@ -233,22 +269,24 @@ function saveTasks() {
   updateCounter();
 }
 
-
- // Load tasks from localStorage
-  
 // ---------------- LOAD TASKS ----------------
 function loadTasks() {
   const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
-  tasks.forEach(task => addTask(task.text, task.status, task.priority));
+  
+  // Clear existing tasks
+  taskList.innerHTML = "";
+  progressList.innerHTML = "";
+  completedList.innerHTML = "";
+  
+  tasks.forEach(task => addTask(task.text, task.status, task.priority, task.category));
   updateCounter();
 }
 
-
- // ---------------- CLEAR ALL ----------------
+// ---------------- CLEAR ALL ----------------
 const clearAllBtn = document.getElementById("clearAllBtn");
 clearAllBtn.addEventListener("click", () => {
   if (confirm("Are you sure you want to delete all tasks?")) {
-    todoList.innerHTML = "";
+    taskList.innerHTML = "";
     progressList.innerHTML = "";
     completedList.innerHTML = "";
     localStorage.removeItem("tasks");
@@ -261,21 +299,22 @@ addBtn.addEventListener("click", () => addTask());
 taskInput.addEventListener("keypress", e => {
   if (e.key === "Enter") addTask();
 });
+
 // Toggle theme on button click
 themeToggle.addEventListener("click", () => {
   document.body.classList.toggle("dark");
 
   if (document.body.classList.contains("dark")) {
-    themeToggle.innerHTML = '<i class="fas fa-sun"></i>'; // switch to sun icon
+    themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
     localStorage.setItem("theme", "dark");
   } else {
-    themeToggle.innerHTML = '<i class="fas fa-moon"></i>'; // switch to moon icon
+    themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
     localStorage.setItem("theme", "light");
   }
 });
+
 // ---------- SEARCH (robust) ----------
 (function () {
-  // try a few likely ids so we don't break if it was named differently
   const searchInput = document.getElementById("searchInput") 
                     || document.getElementById("taskSearch")
                     || null;
@@ -285,36 +324,24 @@ themeToggle.addEventListener("click", () => {
     return;
   }
 
-  // filter function
   function runFilter() {
     const q = searchInput.value.toLowerCase().trim();
-
-    // select all tasks in the board (works even if you didn't add a custom class)
     const nodes = document.querySelectorAll(".board li");
 
     nodes.forEach(li => {
-      // gather searchable bits: main text, category (data attr), priority (from class)
       const text = (li.querySelector("span")?.textContent || "").toLowerCase();
       const category = (li.dataset.category || "").toLowerCase();
-      // priority stored as class like "priority-high"
       const classes = Array.from(li.classList);
       const priority = (classes.find(c => c.startsWith("priority-")) || "").replace("priority-", "");
 
-      // match if query is empty OR present in text/category/priority
       const matches = q === "" || text.includes(q) || category.includes(q) || priority.includes(q);
-
-      // show/hide (use empty string to let CSS handle default display)
       li.style.display = matches ? "" : "none";
     });
   }
 
-  // attach handler
   searchInput.addEventListener("input", runFilter);
-
-  // run filter after load in case tasks already present
   window.addEventListener("load", runFilter);
 })();
-//END OF SEARCH----------
 
 //counter
 function updateCounter() {
@@ -327,12 +354,11 @@ function updateCounter() {
   document.getElementById("taskCounter").textContent =
     `${completedTasks} of ${totalTasks} tasks completed`;
 }
+
 // enable drag & drop for all columns
-// drag start / end (delegated, works for dynamically added <li>)
 document.addEventListener("dragstart", (e) => {
   const li = e.target.closest("li");
   if (!li) return;
-  // required for Firefox
   try { e.dataTransfer.setData("text/plain", "moving"); } catch (err) {}
   e.dataTransfer.effectAllowed = "move";
   li.classList.add("dragging");
@@ -345,13 +371,13 @@ document.addEventListener("dragend", (e) => {
 });
 
 // clean column-based drop + highlight
-const columns = document.querySelectorAll(".column"); // selects the <div class="column ...">
+const columns = document.querySelectorAll(".column");
 
 columns.forEach(column => {
-  const list = column.querySelector("ul"); // the actual <ul> where <li> live
+  const list = column.querySelector("ul");
 
   column.addEventListener("dragover", (e) => {
-    e.preventDefault(); // allow drop
+    e.preventDefault();
     column.classList.add("highlight");
   });
 
@@ -361,57 +387,62 @@ columns.forEach(column => {
   });
 
   column.addEventListener("dragleave", (e) => {
-    // remove highlight when leaving the column area
-    // this avoids flicker when moving between child elements
     const rect = column.getBoundingClientRect();
     const x = e.clientX, y = e.clientY;
     if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
       column.classList.remove("highlight");
     }
   });
-//DROP HANDLER
- column.addEventListener("drop", (e) => {
-  e.preventDefault();
-  column.classList.remove("highlight");
 
-  const dragging = document.querySelector(".dragging");
-  if (!dragging) return;
+  //DROP HANDLER
+  column.addEventListener("drop", (e) => {
+    e.preventDefault();
+    column.classList.remove("highlight");
 
-  list.appendChild(dragging);
+    const dragging = document.querySelector(".dragging");
+    if (!dragging) return;
 
-  // bounce
-  dragging.classList.add("bounce");
-  setTimeout(() => dragging.classList.remove("bounce"), 300);
+    list.appendChild(dragging);
 
-  const sel = dragging.querySelector("select");
-  if (sel) {
-    if (column.classList.contains("todo")) sel.value = "todo";
-    else if (column.classList.contains("in-progress")) sel.value = "progress";
+    // bounce
+    dragging.classList.add("bounce");
+    setTimeout(() => dragging.classList.remove("bounce"), 300);
+
+    // Determine new status and update localStorage
+    let newStatus = "todo";
+    const taskText = dragging.querySelector("span").textContent;
+    const taskCategory = dragging.dataset.category;
+    
+    if (column.classList.contains("todo")) newStatus = "todo";
+    else if (column.classList.contains("in-progress")) newStatus = "progress";
     else if (column.classList.contains("completed")) {
-      sel.value = "completed";
+      newStatus = "completed";
       celebrateCompletion(); // 🎉 sound + confetti
     }
-  }
 
-  saveTasks();
-  updateCounter();
-}); //END OF DROP HANDLER
+    // Update dropdown to match
+    const sel = dragging.querySelector("select");
+    if (sel) sel.value = newStatus;
+
+    // Update localStorage directly
+    updateTaskStatus(taskText, taskCategory, newStatus);
+    updateCounter();
+  });
 });
+
 // Dashboard navigation dropdown (top-right)
 const dashboardNav = document.getElementById("dashboardNav");
-
 dashboardNav.addEventListener("change", () => {
-  window.location.href = dashboardNav.value; // Redirect to chosen dashboard
+  window.location.href = dashboardNav.value;
 });
 
-//unlocks” audio after your first click anywhere.
+//"unlocks" audio after your first click anywhere.
 document.addEventListener("click", () => {
   const sound = document.getElementById("successSound");
   if (sound) {
     sound.play().then(() => {
       sound.pause();
-      sound.currentTime = 0; // reset
+      sound.currentTime = 0;
     }).catch(() => {});
   }
 }, { once: true });
-

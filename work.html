@@ -12,20 +12,23 @@
   <div class="board">
     <div class="column" data-status="todo">
       <h2>To Do</h2>
-      <ul id="todo-list"></ul>
+      <ul id="todoList"></ul>
     </div>
 
     <div class="column" data-status="in-progress">
       <h2>In Progress</h2>
-      <ul id="in-progress-list"></ul>
+      <ul id="progressList"></ul>
     </div>
 
     <div class="column" data-status="completed">
       <h2>Completed</h2>
-      <ul id="completed-list"></ul>
+      <ul id="completedList"></ul>
     </div>
   </div>
-
-  <script src="work.js"></script>
+<audio id="successSound" src="./sounds/success.mp3" preload="auto"></audio>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  <script>const currentCategory = "work";</script>
+<script src="./js/categories.js"></script>
+<script src="./js/main.js"></script>
 </body>
 </html>

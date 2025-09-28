@@ -72,8 +72,15 @@
   <audio id="successSound" src="./sounds/success.mp3" preload="auto"></audio>
   <!-- Load confetti BEFORE main.js -->
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+<script src="./js/categories.js"></script>
 <script src="./js/main.js"></script>
-
+<div id="deletePopup" class="popup" style="display:none;">
+  <div class="popup-content">
+    <p>Are you sure you want to delete this task?</p>
+    <button id="confirmDelete">Yes</button>
+    <button id="cancelDelete">No</button>
+  </div>
+</div>
 
 </body>
 </html>
